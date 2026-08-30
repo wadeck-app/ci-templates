@@ -1,0 +1,117 @@
+name: Publish npm package
+
+# Reusable workflow: call with
+#   uses: wadeck-app/ci-templates/.github/workflows/publish-npm.yml@main
+#   secrets: inherit
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: 'Node.js version to use'
+        required: false
+        default: '24'
+        type: string
+      workspace:
+        description: 'npm workspace to build/publish (e.g. packages/my-pkg). Leave empty for root.'
+        required: false
+        default: ''
+        type: string
+      bundle-script:
+        description: 'npm script name to run for bundling. Leave empty to skip bundling.'
+        required: false
+        default: 'bundle'
+        type: string
+      package-dir:
+        description: 'Directory containing the package.json to publish (relative to repo root, default: .)'
+        required: false
+        default: '.'
+        type: string
+      dist-tag-override:
+        description: 'Override the computed dist-tag (optional). Useful for special release channels.'
+        required: false
+        default: ''
+        type: string
+      version-input:
+        description: 'Manual version string (forwarded from workflow_dispatch input). Empty triggers CalVer.'
+        required: false
+        default: ''
+        type: string
+      breaking-input:
+        description: '"true" if this is a breaking change (forwarded from workflow_dispatch input)'
+        required: false
+        default: 'false'
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ inputs.node-version }}
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@wadeck-app'
+
+      # Always install at root — individual workspace builds reference root node_modules
+      - name: Install dependencies
+        run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build TypeScript
+        run: |
+          if [[ -n "${{ inputs.workspace }}" ]]; then
+            npm run build --workspace "${{ inputs.workspace }}"
+          else
+            npm run build
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute version
+        id: version
+        # Relative path resolves to this repo (ci-templates) regardless of caller
+        uses: ./.github/actions/compute-version
+        with:
+          version-input: ${{ inputs.version-input }}
+          breaking-input: ${{ inputs.breaking-input }}
+
+      - name: Set version in package.json
+        run: |
+          if [[ -n "${{ inputs.workspace }}" ]]; then
+            npm pkg set version="${{ steps.version.outputs.version }}" --workspace "${{ inputs.workspace }}"
+          else
+            (cd "${{ inputs.package-dir }}" && npm pkg set version="${{ steps.version.outputs.version }}")
+          fi
+
+      - name: Bundle
+        if: ${{ inputs.bundle-script != '' }}
+        run: |
+          if [[ -n "${{ inputs.workspace }}" ]]; then
+            npm run "${{ inputs.bundle-script }}" --workspace "${{ inputs.workspace }}"
+          else
+            npm run "${{ inputs.bundle-script }}"
+          fi
+        env:
+          BUNDLE_VERSION: ${{ steps.version.outputs.version }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish
+        working-directory: ${{ inputs.package-dir }}
+        run: |
+          DIST_TAG="${{ inputs.dist-tag-override }}"
+          if [[ -z "$DIST_TAG" ]]; then
+            DIST_TAG="${{ steps.version.outputs.dist_tag }}"
+          fi
+          npm publish --tag "$DIST_TAG"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

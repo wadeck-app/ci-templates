@@ -1,0 +1,77 @@
+name: Compute Version
+description: >
+  Computes CalVer (push) or stable (workflow_dispatch) version and writes
+  version, dist_tag, is_prerelease, and tag to GITHUB_OUTPUT.
+
+inputs:
+  version-input:
+    description: 'Manual version string from workflow_dispatch (e.g. 1.2.0). Leave empty for CalVer.'
+    required: false
+    default: ''
+  breaking-input:
+    description: '"true" to mark this release as breaking (sets dist_tag=breaking-edge, is_prerelease=true)'
+    required: false
+    default: 'false'
+  repo-root:
+    description: 'Root of the repository to run git commands against'
+    required: false
+    default: ${{ github.workspace }}
+
+outputs:
+  version:
+    description: 'Computed version string, e.g. 2026.08.30-055-1fb8b3b7 or 1.2.0'
+    value: ${{ steps.compute.outputs.version }}
+  dist_tag:
+    description: 'npm dist-tag: latest or breaking-edge'
+    value: ${{ steps.compute.outputs.dist_tag }}
+  is_prerelease:
+    description: '"true" if this is a pre-release, "false" otherwise'
+    value: ${{ steps.compute.outputs.is_prerelease }}
+  tag:
+    description: 'Git tag string, e.g. v2026.08.30-055-1fb8b3b7'
+    value: ${{ steps.compute.outputs.tag }}
+
+runs:
+  using: composite
+  steps:
+    - name: Compute version
+      id: compute
+      shell: bash
+      env:
+        VERSION_INPUT: ${{ inputs.version-input }}
+        BREAKING_INPUT: ${{ inputs.breaking-input }}
+        REPO_ROOT: ${{ inputs.repo-root }}
+      run: |
+        set -euo pipefail
+
+        VERSION_INPUT="${VERSION_INPUT:-}"
+        BREAKING_INPUT="${BREAKING_INPUT:-false}"
+
+        if [[ -n "$VERSION_INPUT" ]]; then
+          VERSION="$VERSION_INPUT"
+          if [[ "$BREAKING_INPUT" == "true" ]]; then
+            DIST_TAG="breaking-edge"
+            IS_PRERELEASE="true"
+          else
+            DIST_TAG="latest"
+            IS_PRERELEASE="false"
+          fi
+        else
+          # Push to main (default): CalVer edge release
+          DATE=$(date -u '+%Y.%m.%d')
+          # Zero-pad BUILD to 3 digits so lexicographic order matches semver order
+          BUILD=$(printf '%03d' "$(git -C "$REPO_ROOT" rev-list --count HEAD)")
+          SHA=$(git -C "$REPO_ROOT" rev-parse --short=8 HEAD)
+          VERSION="${DATE}-${BUILD}-${SHA}"
+          DIST_TAG="latest"
+          IS_PRERELEASE="false"
+        fi
+
+        TAG="v${VERSION}"
+
+        echo "version=${VERSION}"             >> "$GITHUB_OUTPUT"
+        echo "dist_tag=${DIST_TAG}"           >> "$GITHUB_OUTPUT"
+        echo "is_prerelease=${IS_PRERELEASE}" >> "$GITHUB_OUTPUT"
+        echo "tag=${TAG}"                     >> "$GITHUB_OUTPUT"
+
+        echo "Computed: version=${VERSION} dist_tag=${DIST_TAG} tag=${TAG}" >&2

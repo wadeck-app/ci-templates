@@ -1,0 +1,63 @@
+name: Build Go Launcher
+
+# Reusable workflow: call with
+#   uses: wadeck-app/ci-templates/.github/workflows/build-go-launcher.yml@main
+#
+# Produces three binaries uploaded as artifact "<output-prefix>-binaries":
+#   <output-prefix>_windows_release.exe
+#   <output-prefix>_darwin_arm64_release
+#   <output-prefix>_darwin_amd64_release
+
+on:
+  workflow_call:
+    inputs:
+      go-version:
+        description: 'Go toolchain version to use'
+        required: false
+        default: '1.21'
+        type: string
+      launcher-dir:
+        description: 'Path to the Go main package directory, relative to repo root (e.g. launcher/cmd)'
+        required: true
+        type: string
+      output-prefix:
+        description: 'Prefix for output binary filenames (e.g. flow, task, orch)'
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.go-version }}
+
+      - name: Build Windows binary (amd64)
+        run: |
+          GOOS=windows GOARCH=amd64 go build \
+            -o "${{ inputs.output-prefix }}_windows_release.exe" \
+            "./${{ inputs.launcher-dir }}"
+
+      - name: Build macOS binary (arm64)
+        run: |
+          GOOS=darwin GOARCH=arm64 go build \
+            -o "${{ inputs.output-prefix }}_darwin_arm64_release" \
+            "./${{ inputs.launcher-dir }}"
+
+      - name: Build macOS binary (amd64)
+        run: |
+          GOOS=darwin GOARCH=amd64 go build \
+            -o "${{ inputs.output-prefix }}_darwin_amd64_release" \
+            "./${{ inputs.launcher-dir }}"
+
+      - name: Upload binaries as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.output-prefix }}-binaries
+          path: |
+            ${{ inputs.output-prefix }}_windows_release.exe
+            ${{ inputs.output-prefix }}_darwin_arm64_release
+            ${{ inputs.output-prefix }}_darwin_amd64_release
