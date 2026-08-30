@@ -1,0 +1,46 @@
+name: Self-check gate
+
+on:
+    workflow_call:
+        inputs:
+            package-name:
+                description: 'npm package to install (e.g. @wadeck-app/flow-cli)'
+                required: true
+                type: string
+            version:
+                description: 'Exact version to install (e.g. 2025.8.1)'
+                required: true
+                type: string
+            self-check-cmd:
+                description: 'Command to run as self-check (e.g. "flow cli self-check")'
+                required: true
+                type: string
+            node-version:
+                description: 'Node.js version to use'
+                required: false
+                type: string
+                default: '24'
+        secrets:
+            node-auth-token:
+                description: 'npm auth token for GitHub Packages'
+                required: true
+
+jobs:
+    self-check:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: ${{ inputs.node-version }}
+                  registry-url: 'https://npm.pkg.github.com'
+                  scope: '@wadeck-app'
+
+            - name: Install ${{ inputs.package-name }}@${{ inputs.version }}
+              run: npm install -g ${{ inputs.package-name }}@${{ inputs.version }}
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.node-auth-token }}
+
+            - name: Run self-check
+              run: ${{ inputs.self-check-cmd }}
+              env:
+                  CLI_SELF_CHECK_QUIET: '1'

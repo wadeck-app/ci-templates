@@ -1,0 +1,31 @@
+name: Publish platform packages
+description: >
+    Publishes the three platform-specific npm packages
+    (<cli-name>-cli-win32-x64, <cli-name>-cli-darwin-arm64, <cli-name>-cli-darwin-x64)
+    from the local packages/ directory.
+
+inputs:
+    cli-name:
+        description: 'CLI name without -cli suffix (e.g. flow, task)'
+        required: true
+    dist-tag:
+        description: 'npm dist-tag to publish under (e.g. latest, next)'
+        required: true
+    node-auth-token:
+        description: 'npm auth token for GitHub Packages'
+        required: true
+
+runs:
+    using: composite
+    steps:
+        - name: Publish platform packages for ${{ inputs.cli-name }}
+          shell: bash
+          env:
+              NODE_AUTH_TOKEN: ${{ inputs.node-auth-token }}
+          run: |
+              for pkg in \
+                  ${{ inputs.cli-name }}-cli-win32-x64 \
+                  ${{ inputs.cli-name }}-cli-darwin-arm64 \
+                  ${{ inputs.cli-name }}-cli-darwin-x64; do
+                (cd "packages/$pkg" && npm publish --tag ${{ inputs.dist-tag }})
+              done
