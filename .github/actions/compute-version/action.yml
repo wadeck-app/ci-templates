@@ -58,7 +58,7 @@ runs:
           fi
         else
           # Push to main (default): CalVer edge release
-          DATE=$(date -u '+%Y.%m.%d')
+          DATE=$(date -u '+%Y.%-m.%-d')
           # Zero-pad BUILD to 3 digits so lexicographic order matches semver order
           BUILD=$(printf '%03d' "$(git -C "$REPO_ROOT" rev-list --count HEAD)")
           SHA=$(git -C "$REPO_ROOT" rev-parse --short=8 HEAD)
