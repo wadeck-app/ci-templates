@@ -26,13 +26,6 @@ BREAKING_INPUT="${BREAKING_INPUT:-false}"
 
 if [[ "$EVENT" == "workflow_dispatch" && -n "$VERSION_INPUT" ]]; then
   VERSION="$VERSION_INPUT"
-  if [[ "$BREAKING_INPUT" == "true" ]]; then
-    DIST_TAG="breaking-edge"
-    IS_PRERELEASE="true"
-  else
-    DIST_TAG="latest"
-    IS_PRERELEASE="false"
-  fi
 else
   # Push to main (default): edge release with date-based version
   DATE=$(date -u '+%Y.%m.%d')
@@ -43,6 +36,16 @@ else
   BUILD=$(printf '%03d' "$(git -C "$REPO_ROOT" rev-list --count HEAD)")
   SHA=$(git -C "$REPO_ROOT" rev-parse --short=8 HEAD)
   VERSION="${DATE}-${BUILD}-${SHA}"
+fi
+
+# breaking-input must be honored regardless of whether version was manual or
+# edge-computed above -- it previously only applied inside the manual-version
+# branch, so workflow_dispatch with breaking=true and no version silently
+# published to the "latest" dist-tag like a normal release (bug, fixed here).
+if [[ "$BREAKING_INPUT" == "true" ]]; then
+  DIST_TAG="breaking-edge"
+  IS_PRERELEASE="true"
+else
   DIST_TAG="latest"
   IS_PRERELEASE="false"
 fi
