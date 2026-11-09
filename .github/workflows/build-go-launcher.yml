@@ -7,6 +7,10 @@ name: Build Go Launcher
 #   <output-prefix>_windows_release.exe
 #   <output-prefix>_darwin_arm64_release
 #   <output-prefix>_darwin_amd64_release
+#
+# upload-artifact / download-artifact DROP file modes: the darwin binaries come back 0644. Consumers must run
+# scripts/restore-exec-bits.sh after download-artifact and before `npm pack` / `npm publish`, and should run
+# scripts/smoke-packed.sh on a macOS runner (see README).
 
 on:
   workflow_call:
