@@ -41,13 +41,15 @@ bash ci/scripts/generate-platform-packages.sh flow:worker.cjs task
 
 # Environment overrides:
 TEMPLATES_DIR=path/to/templates REGISTRY=https://npm.pkg.github.com/ PKG_SCOPE=wadeck-app \
-PLATFORMS=win32-x64,darwin-arm64 \
+PLATFORMS=win32-x64,darwin-arm64 PKG_VERSION="$VERSION" \
   bash ci/scripts/generate-platform-packages.sh flow
 ```
 
 Generates under `packages/`: `<cli>-cli-<platform>/` for each platform in `PLATFORMS`, and `<cli>-cli-dist/`. An unknown platform key fails the script.
 
 `PLATFORMS` defaults to all three platforms so existing consumers keep building; set it explicitly in every consumer (the same list for `restore-exec-bits.sh` and `smoke-packed.sh`).
+
+`PKG_VERSION` (the version of the build) pins each platform package in the dist `optionalDependencies`. Without it the range is `>=0.0.0-0`, which a prerelease version (every edge build `YYYY.MM.DD-NNN-sha8`) does not satisfy: npm installs no platform package, and the launcher only arrives through the shim's lazy install, for `start`. The script warns when it is unset.
 
 ### restore-exec-bits.sh and smoke-packed.sh
 
