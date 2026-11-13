@@ -10,8 +10,8 @@
 - `generate-platform-packages.sh` is CI-only — it has no local execution path.
 
 ## Platform support
-- Selectable among `win32-x64`, `darwin-arm64`, `darwin-x64` via `PLATFORMS`. No Linux.
-- Consumers set `PLATFORMS` explicitly; the shim refuses every host outside the list. The owner runs Apple silicon only: new CLIs list `win32-x64,darwin-arm64`.
+- Selectable among `win32-x64`, `darwin-arm64`, `darwin-x64`, `linux-x64` via `PLATFORMS`. Linux is x64 only (no `linux-arm64` yet).
+- Consumers set `PLATFORMS` explicitly; the shim refuses every host outside the list. The owner runs Apple silicon only: new CLIs list `win32-x64,darwin-arm64,linux-x64` (Linux for the Linux machine).
 
 ## Versioning
 - Edge builds (push): `YYYY.MM.DD-NNN-<sha8>` format.

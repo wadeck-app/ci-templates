@@ -9,7 +9,7 @@ Shared CI scripts and templates for all wadeck-app repos. Copy or reference thes
 | `scripts/compute-version.sh` | Canonical version string computation. Outputs `version`, `dist_tag`, `is_prerelease`, `tag` to `$GITHUB_OUTPUT`. |
 | `scripts/generate-platform-packages.sh` | Generates one npm package directory per platform in `PLATFORMS` (`<cli>-cli-<platform>`) and a dist package with the JS shim. Run in CI before copying binaries. |
 | `scripts/restore-exec-bits.sh` | Restores the exec bit that `download-artifact` drops. Run before `npm pack` / `npm publish`. |
-| `scripts/smoke-packed.sh` | Packs and installs the CLI into a throwaway prefix on a macOS runner; fails if a tarball entry lacks the exec bit or `--version` / `--help` fail. |
+| `scripts/smoke-packed.sh` | Packs and installs the CLI into a throwaway prefix on a macOS or Linux runner; fails if a tarball entry lacks the exec bit or `--version` / `--help` fail. |
 
 ## Templates
 
@@ -55,7 +55,7 @@ Generates under `packages/`: `<cli>-cli-<platform>/` for each platform in `PLATF
 - uses: actions/download-artifact@v4
   with: { name: <cli>-cli-packages, path: packages }
 - run: bash ci/scripts/restore-exec-bits.sh packages <cli> win32-x64,darwin-arm64
-- run: bash ci/scripts/smoke-packed.sh packages <cli> "$VERSION" win32-x64,darwin-arm64   # macOS runner only
+- run: bash ci/scripts/smoke-packed.sh packages <cli> "$VERSION" win32-x64,darwin-arm64   # macOS or Linux runner only
 ```
 
 `macos-14` (Apple silicon) runs the smoke job. Make it `continue-on-error` until the runner is proven reliable.
@@ -69,3 +69,4 @@ Generates under `packages/`: `<cli>-cli-<platform>/` for each platform in `PLATF
 | `win32-x64` | Windows | x64 |
 | `darwin-arm64` | macOS | arm64 |
 | `darwin-x64` | macOS | x64 |
+| `linux-x64` | Linux | x64 |
