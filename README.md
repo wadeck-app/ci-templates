@@ -49,7 +49,7 @@ Generates under `packages/`: `<cli>-cli-<platform>/` for each platform in `PLATF
 
 `PLATFORMS` defaults to all three platforms so existing consumers keep building; set it explicitly in every consumer (the same list for `restore-exec-bits.sh` and `smoke-packed.sh`).
 
-`PKG_VERSION` (the version of the build) pins each platform package in the dist `optionalDependencies`. Without it the range is `>=0.0.0-0`, which a prerelease version (every edge build `YYYY.MM.DD-NNN-sha8`) does not satisfy: npm installs no platform package, and the launcher only arrives through the shim's lazy install, for `start`. The script warns when it is unset.
+`PKG_VERSION` (the version of the build) pins each platform package in the dist `optionalDependencies`. Without it the range is `latest` (the rule for every internal `@wadeck-app` lib), which resolves the dist-tag and may differ from the build; the script warns. Never use `>=0.0.0-0`: it does not match a prerelease version (every edge build `YYYY.MM.DD-NNN-sha8`), so npm drops the package (no platform package installed, `npm ci` "Missing ... from lock file").
 
 ### restore-exec-bits.sh and smoke-packed.sh
 
